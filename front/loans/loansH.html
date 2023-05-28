@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Book Loan Form</title>
+
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal form {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 60%;
+      min-width: 500px;
+    }
+
+    .modal input,
+    .modal button {
+      display: block;
+      margin-bottom: 10px;
+      min-width: 250px;
+      padding: 10px;
+      font-size: 20px;
+    }
+
+    .expired-loan-row {
+      color: red;
+    }
+  </style>
+
+  <script>
+    const MY_SERVER = "http://127.0.0.1:5000";
+    const loansDisplay = document.getElementById("loansDisplay");
+
+    const showLoans = async () => {
+      const loansResponse = await axios.get(MY_SERVER + "/show-loans");
+      const loans = loansResponse.data;
+      console.log(loans);
+
+      const loansDisplay = document.getElementById("loansDisplay");
+
+      let tbodyHtml = '';
+      loans.forEach((loan) => {
+        let loanDate = new Date(loan.loandate);
+        let returnDate = new Date(loan.returndate);
+        let todayDate = new Date();
+
+        let rowClass = '';
+        if (todayDate > returnDate) {
+          rowClass = 'expired-loan-row';
+        }
+
+        tbodyHtml += `
+          <tr class="${rowClass}">
+            <td>${loan.custid}</td>
+            <td>${loan.bookid}</td>
+            <td>${loan.loandate}</td>
+            <td>${loan.returndate}</td>
+            <td>
+              <button onclick="deleteLoan(${loan.id})">Delete</button>
+              <button onclick="returnLoan(${loan.id})">Return Loan</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("loansDisplay").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Customer ID</th>
+              <th>Book ID</th>
+              <th>Loan Date</th>
+              <th>Return Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tbodyHtml}
+          </tbody>
+        </table>
+      `;
+    };
+
+    const deleteLoan = async (id) => {
+      try {
+        await axios.delete(MY_SERVER + `/delete-loan/${id}`);
+        showLoans();
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const returnLoan = async (loanId) => {
+      try {
+        await axios.put(`${MY_SERVER}/update-loan/${loanId}`);
+        const loansResponse = await axios.get(`${MY_SERVER}/show-loans`);
+        const updatedLoans = loansResponse.data;
+        // Handle the updated loans list as per your requirement
+        // ...
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const addLoanModal = document.createElement("div");
+    addLoanModal.setAttribute("id", "addLoanModal");
+    addLoanModal.setAttribute("class", "modal");
+    addLoanModal.innerHTML = `
+      <form onsubmit="addLoan(this.customerId.value, this.bookId.value, this.loanDate.value, this.returnDate.value); return false;">
+        <input type="text" placeholder="Customer ID" name="customerId" required>
+        <input type="text" placeholder="Book ID" name="bookId" required>
+        <input type="date" placeholder="Loan Date" name="loanDate" required>
+        <input type="date" placeholder="Return Date" name="returnDate" required>
+        <button type="submit">Add</button>
+      </form>
+    `;
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.appendChild(addLoanModal);
+    });
+
+    let activeLoanId = null;
+
+    const openLoan = (id) => {
+      activeLoanId = id;
+      addLoanModal.style.display = "block";
+    };
+
+    window.onclick = function (event) {
+      if (event.target == addLoanModal) {
+        addLoanModal.style.display = "none";
+      }
+    };
+  </script>
+
+</head>
+
+<body>
+  <div class="subnavbar">
+    <ul>
+      <li><a href="loanH.html">List</a></li>
+      <li><a href="return_loan.html">Return Loan</a></li>
+    </ul>
+  </div>
+
+  <div class="title">Loans:</div>
+  <div id="loansDisplay"></div>
+
+  <script>
+    showLoans();
+  </script>
+
+</body>
+
+</html>
